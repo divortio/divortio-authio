@@ -1,19 +1,32 @@
 /**
  * @file The public router and handler factory for the pluggable authentication module.
- * @version 6.0.0 (authio)
- *
- * @description
- * This module exports a single `createAuthHandler` function that constructs a complete,
- * authentication-aware fetch handler. It has been refactored to act as a clean, high-level
- * orchestrator. It imports and delegates logic to specialized handlers for API and UI routes,
- * making the code more modular, readable, and maintainable.
+ * @version 7.0.0 (authio)
  */
 
 import {createAuthConfig} from './config.mjs';
-import {createAuthMiddleware} from './middleware.mjs';
 import {Logger} from './logger.mjs';
+import {authenticate} from './auth.mjs';
 import {ApiHandler} from './handlers/api.mjs';
 import {UiHandler} from './handlers/ui.mjs';
+
+/**
+ * Creates a new fetch handler that acts as a gatekeeper, denying access if a request is not authenticated.
+ * @private
+ */
+function createGatekeeper(fetchHandler, logger) {
+    return (request, env, ctx) => {
+        if (!request.isAuthed) {
+            logger.warn('Request unauthorized', {
+                path: new URL(request.url).pathname,
+                ip: request.headers.get('cf-connecting-ip')
+            });
+            // For programmatic requests, send 401. Browser requests are handled by the UI handler's redirect.
+            return new Response("Unauthorized", {status: 401});
+        }
+        logger.info('Request authorized', {path: new URL(request.url).pathname, method: request.authio.method});
+        return fetchHandler(request, env, ctx);
+    };
+}
 
 /**
  * Creates a complete fetch handler that wraps an application with the authentication system.
@@ -30,24 +43,25 @@ export function createAuthHandler(appFetchHandler) {
             logLevel: authConfig.logLevel
         }).withContext({requestId: request.headers.get('cf-ray')});
 
-        // --- 1. Handle Auth API Routes ---
-        // Delegate to the dedicated API handler first.
-        const apiResponse = await ApiHandler.handleRequest(request, authConfig, logger);
+        // --- 1. Authenticate the Request ---
+        // Every request is processed by the authenticate utility first.
+        const authedRequest = await authenticate(request, env, ctx, {config: authConfig});
+
+        // --- 2. Handle Auth API Routes (Login/Logout) ---
+        const apiResponse = await ApiHandler.handleRequest(authedRequest, env, ctx, authConfig);
         if (apiResponse) {
             return apiResponse;
         }
 
-        // --- 2. Handle Login Page UI and Redirects ---
-        // Delegate to the dedicated UI handler.
-        const uiResponse = await UiHandler.handleRequest(request, env, authConfig, logger);
+        // --- 3. Handle Login Page UI and Redirects ---
+        const uiResponse = await UiHandler.handleRequest(authedRequest, env, authConfig, logger);
         if (uiResponse) {
             return uiResponse;
         }
 
-        // --- 3. Delegate to the Protected Application Handler ---
-        // If neither the API nor the UI handler returned a response, it's a request
-        // for the main application, which needs to be protected by the middleware.
-        const protectedApp = createAuthMiddleware(appFetchHandler, authConfig, logger);
-        return protectedApp(request, env, ctx);
+        // --- 4. Protect the Application Handler ---
+        // If no API or UI response was sent, protect the main application.
+        const protectedApp = createGatekeeper(appFetchHandler, logger);
+        return protectedApp(authedRequest, env, ctx);
     };
 }

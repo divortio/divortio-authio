@@ -1,14 +1,8 @@
 /**
  * @file Handles all authentication-related user interface routing and rendering.
- * @version 1.0.0 (authio)
- *
- * @description
- * This module is responsible for the user-facing parts of the authentication flow.
- * It manages redirects for authenticated and unauthenticated users and handles serving
- * the `login.html` asset with its server-side templating and graceful fallback.
+ * @version 2.0.0 (authio)
  */
 
-import {JWT} from '../jwt.mjs';
 import {fallbackLoginPage} from '../loginFallback.mjs';
 
 /**
@@ -17,28 +11,29 @@ import {fallbackLoginPage} from '../loginFallback.mjs';
  */
 export const UiHandler = {
     /**
-     * Checks if a request is for a UI route (like the login page) and handles it.
-     * @param {Request} request - The incoming request.
+     * Checks if a request is for a UI route and handles it based on auth context.
+     * @param {Request} authedRequest - The incoming request, pre-processed by the authenticate utility.
      * @param {object} env - The worker's environment, containing the ASSETS binding.
      * @param {object} config - The application's auth configuration object.
      * @param {import('../logger.mjs').Logger} logger - The logger instance.
      * @returns {Promise<Response|null>} A Response if the route is matched, otherwise null.
      */
-    async handleRequest(request, env, config, logger) {
-        const url = new URL(request.url);
-        const payload = await JWT.validate({...config, request});
+    async handleRequest(authedRequest, env, config, logger) {
+        const url = new URL(authedRequest.url);
         const isLoginPageRoute = url.pathname === config.loginUrlPath;
+        const {isAuthed, method} = authedRequest.authio;
 
         // --- Redirect Logic ---
-        if (payload && isLoginPageRoute) {
+        if (isAuthed && isLoginPageRoute) {
             // User is ALREADY logged in but is visiting the login page. Redirect them.
             return Response.redirect(new URL(config.authRedirectPath, url).href, 302);
         }
 
-        const isProgrammaticRequest = request.headers.has(config.agentHeaderName);
+        // Programmatic requests (e.g., cURL) should not be redirected. They will be handled by the gatekeeper.
+        const isProgrammaticRequest = method === 'header';
 
-        if (!payload && !isLoginPageRoute && !isProgrammaticRequest) {
-            const isBrowserRequest = request.headers.get('Accept')?.includes('text/html');
+        if (!isAuthed && !isLoginPageRoute && !isProgrammaticRequest) {
+            const isBrowserRequest = authedRequest.headers.get('Accept')?.includes('text/html');
             if (isBrowserRequest) {
                 // User is NOT logged in and is trying to access a protected page. Redirect them.
                 return Response.redirect(new URL(config.loginUrlPath, url).href, 302);
@@ -53,7 +48,6 @@ export const UiHandler = {
                 if (!loginPageResponse.ok) throw new Error(`Asset not found: ${loginPageResponse.status}`);
 
                 let html = await loginPageResponse.text();
-                // Simple server-side templating to inject the correct API path into the form action.
                 html = html.replace(/"\/api\/auth\/login"/g, `"${config.loginApiPath}"`);
                 return new Response(html, {headers: {'Content-Type': 'text/html'}});
             } catch (e) {

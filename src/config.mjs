@@ -1,6 +1,6 @@
 /**
  * @file Manages and strictly validates the configuration for the Authio module.
- * @version 2.0.0 (authio)
+ * @version 2.1.0 (authio)
  *
  * @description
  * This module exports a single function, `createAuthConfig`, which is responsible for

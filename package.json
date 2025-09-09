@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A pluggable, self-contained authentication module for Cloudflare Workers using JWTs.",
   "private": true,
-  "main": "src/router.mjs",
+  "main": "src/index.mjs",
   "author": "Divortio",
   "license": "MIT",
   "devDependencies": {
