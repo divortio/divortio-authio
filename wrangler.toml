@@ -25,12 +25,8 @@ ROOT_DOMAIN = "proxy.example.com"
 # -------------------------------------------------------------------------------------
 # |                           Authio Module Configuration                             |
 # -------------------------------------------------------------------------------------
-USER_AUTH_ENABLED = true
-AGENT_AUTH_ENABLED = true
-
 # --- Authio Module Paths ---
 AUTH_USERS_MODULE_PATH = "./src/auth/users.mjs"
-AUTH_AGENTS_MODULE_PATH = "./src/auth/agents.mjs"
 
 # --- Authio UI & Routing Paths ---
 LOGIN_URL_PATH = "/login"

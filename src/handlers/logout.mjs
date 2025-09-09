@@ -7,8 +7,8 @@
  * which clears the session JWT cookie, effectively logging the user out.
  */
 
-import {createAuthConfig} from './config.mjs';
-import {Logger} from './logger.mjs';
+import {createAuthConfig} from '../config.mjs';
+import {Logger} from '../utils/logger.mjs';
 
 /**
  * Processes a logout request and returns a Response that clears the auth cookie.

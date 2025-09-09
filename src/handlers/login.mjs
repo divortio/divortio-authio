@@ -8,10 +8,10 @@
  * response that establishes a session by setting a JWT cookie.
  */
 
-import {createAuthConfig} from './config.mjs';
-import {CredentialStore} from './creds.mjs';
-import {JWT} from './jwt.mjs';
-import {Logger} from './logger.mjs';
+import {createAuthConfig} from '../config.mjs';
+import {CredentialStore} from '../utils/creds.mjs';
+import {JWT} from '../utils/jwt.mjs';
+import {Logger} from '../utils/logger.mjs';
 
 /**
  * Processes a login request, validates credentials, and returns a Response.

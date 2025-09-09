@@ -12,9 +12,9 @@
  */
 
 import {createAuthConfig} from './config.mjs';
-import {CredentialStore} from './creds.mjs';
-import {JWT} from './jwt.mjs';
-import {Logger} from './logger.mjs';
+import {CredentialStore} from './utils/creds.mjs';
+import {JWT} from './utils/jwt.mjs';
+import {Logger} from './utils/logger.mjs';
 
 /**
  * @typedef {object} AuthioContext
