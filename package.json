@@ -1,0 +1,13 @@
+{
+  "name": "divortio-authio",
+  "version": "1.0.0",
+  "description": "A pluggable, self-contained authentication module for Cloudflare Workers using JWTs.",
+  "private": true,
+  "main": "src/router.mjs",
+  "author": "Divortio",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^4.32.00",
+    "@cloudflare/workers-types": "^4.20250807.0"
+  }
+}

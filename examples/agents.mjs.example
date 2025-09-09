@@ -1,0 +1,20 @@
+/**
+ * @file An example in-memory store for service agent API tokens.
+ * @version 1.0.0
+ * @note To use this, copy it to your project's `src/auth` directory, rename it to
+ * `agents.mjs`, and replace the placeholder tokens with your own secure, random strings.
+ */
+
+/**
+ * @namespace AgentStore
+ * @description A hardcoded `Set` of valid, secret API tokens for service applications.
+ * Using a `Set` provides highly performant O(1) lookups.
+ *
+ * @example
+ * // To generate a new, secure token, you can use a command like:
+ * // `openssl rand -base64 32`
+ */
+export const AgentStore = new Set([
+    "replace_with_a_long_and_secret_string_for_your_first_service",
+    "replace_with_another_super_secret_token_for_your_data_pipeline",
+]);

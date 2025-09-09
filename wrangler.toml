@@ -1,0 +1,68 @@
+# =====================================================================================
+# Wrangler Configuration for Divortio Worker Proxy
+# Version: 11.0.0
+# =====================================================================================
+name = "divortio-worker-proxy"
+main = "src/worker.mjs"
+compatibility_date = "2025-09-08"
+# account_id = "your_account_id_here"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[routes]]
+pattern = "proxy.example.com"
+custom_domain = true
+[[routes]]
+pattern = "*.proxy.example.com"
+custom_domain = true
+
+[vars]
+# --- Core Proxy Configuration ---
+ROOT_DOMAIN = "proxy.example.com"
+
+# -------------------------------------------------------------------------------------
+# |                           Authio Module Configuration                             |
+# -------------------------------------------------------------------------------------
+USER_AUTH_ENABLED = true
+AGENT_AUTH_ENABLED = true
+
+# --- Authio Module Paths ---
+AUTH_USERS_MODULE_PATH = "./src/auth/users.mjs"
+AUTH_AGENTS_MODULE_PATH = "./src/auth/agents.mjs"
+
+# --- Authio UI & Routing Paths ---
+LOGIN_URL_PATH = "/login"
+LOGIN_ASSET_PATH = "./login.html"
+AUTH_REDIRECT_PATH = "/"
+
+# --- Authio API Route Paths ---
+LOGIN_API_PATH = "/api/auth/login"
+LOGOUT_API_PATH = "/api/auth/logout"
+
+# --- Authio Identifiers ---
+AUTH_COOKIE_NAME = "__authio_jwt"
+AGENT_HEADER_NAME = "X-Authio-Token"
+
+# --- Authio Security ---
+JWT_SECRET = "your-super-secret-key-that-is-at-least-32-characters-long"
+SESSION_TIMEOUT = 3600 # 1 hour
+
+# --- Authio JWT Registered Claims ---
+JWT_ISSUER = "DivortioProxio"
+JWT_AUDIENCE = "DivortioProxioUsers"
+
+# --- Authio Logging Configuration (NEW) ---
+AUTH_LOG_ENABLED = true
+# Log level can be "error", "warn", "info", or "debug" (most verbose).
+AUTH_LOG_LEVEL = "info"
+
+# -------------------------------------------------------------------------------------
+# |                           Browser Profile & Caching                               |
+# -------------------------------------------------------------------------------------
+EMULATION_STRATEGY = "passthrough"
+PROFILE_COOKIE_NAME = "_wkrPrx_brwsrPrfl"
+CACHE_ENABLED = true
+CACHE_TTL = 180
+CACHEABLE_TYPES = '["image/", "javascript", "css", "font/"]'
