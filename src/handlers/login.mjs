@@ -1,6 +1,6 @@
 /**
  * @file A high-level utility for handling the user login lifecycle event.
- * @version 1.1.0 (authio)
+ * @version 1.2.0 (authio)
  *
  * @description
  * This module exports a single function, `handleLogin`, that encapsulates the
@@ -25,11 +25,12 @@ import {Logger} from '../utils/logger.mjs';
  * @returns {Promise<Response>} A promise that resolves to a Response object.
  */
 export async function handleLogin(request, env, ctx, options = {}) {
-    const config = options.config || await createAuthConfig(env);
+    // Use the provided config or create one from the environment as a fallback.
     const logger = new Logger({
-        enabled: config.logEnabled,
-        logLevel: config.logLevel
+        enabled: String(env.AUTH_LOG_ENABLED).toLowerCase() === 'true',
+        logLevel: env.AUTH_LOG_LEVEL || 'warn'
     }).withContext({requestId: request.headers.get('cf-ray')});
+    const config = options.config || await createAuthConfig(env, logger);
 
     if (request.method !== 'POST') {
         return new Response(JSON.stringify({error: 'Method not allowed'}), {

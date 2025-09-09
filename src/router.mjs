@@ -36,6 +36,7 @@ function createGatekeeper(fetchHandler, logger) {
  * @returns {function(Request, object, ExecutionContext): Promise<Response>} A new, complete fetch handler.
  */
 export function createAuthHandler(appFetchHandler) {
+
     return async (request, env, ctx) => {
         const logger = new Logger({
             enabled: String(env.AUTH_LOG_ENABLED).toLowerCase() === 'true',

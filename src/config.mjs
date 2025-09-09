@@ -1,16 +1,9 @@
 /**
  * @file Manages and strictly validates the configuration for the Authio module.
  * @version 3.1.0 (authio)
- *
- * @description
- * This module exports a single async function, `createAuthConfig`, which is responsible for
- * reading, validating, and type-casting all auth-related environment variables. It now
- * also preloads the user credential store to provide a single, complete, and ready-to-use
- * configuration object, preventing downstream boilerplate.
  */
 
 import {CredentialStore} from './utils/creds.mjs';
-import {Logger} from './utils/logger.mjs';
 
 /**
  * @typedef {object} AuthConfig
@@ -32,8 +25,6 @@ import {Logger} from './utils/logger.mjs';
  * @property {string} logLevel - The minimum level to log ('info', 'warn', 'error').
  */
 
-// --- Validation Helpers ---
-
 function requireAndValidate(env, key, validator, message) {
     const value = env[key];
     if (value === undefined || value === null) {
@@ -49,28 +40,16 @@ const isPath = (val) => typeof val === 'string' && val.includes('/');
 const isInteger = (val) => !isNaN(parseInt(val, 10)) && Number.isInteger(Number(val));
 const isDomain = (val) => typeof val === 'string' && /^\.?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/.test(val);
 
-/**
- * Creates and returns a structured configuration object for the Authio module.
- * @param {object} env - The parent worker's environment object.
- * @param {Logger} logger - A logger instance for internal operations.
- * @returns {Promise<AuthConfig>} A promise resolving to a unified and type-safe configuration object.
- * @throws {Error} If a required environment variable is missing, insecure, or invalid.
- */
 export async function createAuthConfig(env, logger) {
-    // --- Perform strict validation on required and optional env vars ---
     const usersModulePath = requireAndValidate(env, 'AUTH_USERS_MODULE_PATH', isPath, 'Must be a valid module path.');
     const jwtSecret = requireAndValidate(env, 'JWT_SECRET', (val) => val.length >= 32 && val !== 'default-secret-please-change', 'Must be a unique, random string of at least 32 characters.');
-
     const sessionTimeout = env.SESSION_TIMEOUT ? Number(requireAndValidate(env, 'SESSION_TIMEOUT', isInteger, 'Must be a whole number (integer).')) : 3600;
     const loginUrlPath = env.LOGIN_URL_PATH || '/login';
     if (!isPath(loginUrlPath)) throw new Error('Configuration Error: LOGIN_URL_PATH must be a valid path (e.g., "/login").');
-
     const cookieDomain = env.COOKIE_DOMAIN ? requireAndValidate(env, 'COOKIE_DOMAIN', isDomain, 'Must be a valid domain name, optionally preceded by a dot (e.g., ".example.com").') : null;
 
-    // --- Preload the UserStore ---
     const userStore = await CredentialStore.get(usersModulePath, logger);
 
-    // --- Return the final, complete configuration object ---
     return {
         userStore,
         usersModulePath,

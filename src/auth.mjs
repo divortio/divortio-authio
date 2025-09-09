@@ -1,20 +1,11 @@
 /**
  * @file A composable function for authenticating a request and enriching it with auth context.
- * @version 1.1.0 (authio)
- *
- * @description
- * This module exports a single function, `authenticate`, that inspects a request
- * for valid credentials (either a programmatic header or a user session JWT). It does
- * not produce a response, but instead returns a cloned request object with an added
- * `authio` property containing the result of the authentication attempt. This allows
- * a parent worker to easily check authentication status and use the resulting context
- * to make its own decisions about how to proceed.
+ * @version 1.3.0 (authio)
  */
 
-import {createAuthConfig} from './config.mjs';
-import {CredentialStore} from './utils/creds.mjs';
-import {JWT} from './utils/jwt.mjs';
-import {Logger} from './utils/logger.mjs';
+import {createAuthConfig} from '../config.mjs';
+import {JWT} from '../utils/jwt.mjs';
+import {Logger} from '../utils/logger.mjs';
 
 /**
  * @typedef {object} AuthioContext
@@ -38,11 +29,13 @@ import {Logger} from './utils/logger.mjs';
  */
 export async function authenticate(request, env, ctx, options = {}) {
     const clonedRequest = request.clone();
-    const config = options.config || createAuthConfig(env);
+
+    // Use the provided config or create one from the environment as a fallback.
     const logger = new Logger({
-        enabled: config.logEnabled,
-        logLevel: config.logLevel
+        enabled: String(env.AUTH_LOG_ENABLED).toLowerCase() === 'true',
+        logLevel: env.AUTH_LOG_LEVEL || 'warn'
     }).withContext({requestId: request.headers.get('cf-ray')});
+    const config = options.config || await createAuthConfig(env, logger);
 
     /** @type {AuthioContext} */
     const authResult = {
@@ -55,7 +48,7 @@ export async function authenticate(request, env, ctx, options = {}) {
     };
 
     try {
-        const userStore = await CredentialStore.get(config.usersModulePath, logger);
+        const {userStore} = config;
         let firstError = null;
 
         // 1. Check for programmatic access via header first.

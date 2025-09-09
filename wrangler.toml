@@ -22,19 +22,6 @@ custom_domain = true
 # --- Core Proxy Configuration ---
 ROOT_DOMAIN = "proxy.example.com"
 
-# --- Authio JWT Registered Claims ---
-# BEST PRACTICE: Use a static URL to identify the service that issues tokens.
-JWT_ISSUER = "https://auth.proxy.example.com"
-
-# BEST PRACTICE: Use a static URL to identify the service this token is valid for.
-JWT_AUDIENCE = "https://api.proxy.example.com"
-
-# OPTIONAL: Set this to share the cookie across subdomains (e.g., ".example.com")
-# COOKIE_DOMAIN = ".your-domain.com"
-
-# -------------------------------------------------------------------------------------
-# |                           Authio Module Configuration                             |
-# -------------------------------------------------------------------------------------
 # --- Authio Module Paths ---
 AUTH_USERS_MODULE_PATH = "./src/auth/users.mjs"
 
@@ -51,13 +38,18 @@ LOGOUT_API_PATH = "/api/auth/logout"
 AUTH_COOKIE_NAME = "__authio_jwt"
 AGENT_HEADER_NAME = "X-Authio-Token"
 
+# OPTIONAL: Set this to share the cookie across subdomains (e.g., ".example.com")
+# COOKIE_DOMAIN = ".your-domain.com"
+
 # --- Authio Security ---
 JWT_SECRET = "your-super-secret-key-that-is-at-least-32-characters-long"
 SESSION_TIMEOUT = 3600 # 1 hour
 
 # --- Authio JWT Registered Claims ---
-JWT_ISSUER = "DivortioProxio"
-JWT_AUDIENCE = "DivortioProxioUsers"
+# BEST PRACTICE: Use a static URL to identify the service that issues tokens.
+JWT_ISSUER = "https://auth.proxy.example.com"
+# BEST PRACTICE: Use a static URL to identify the service this token is valid for.
+JWT_AUDIENCE = "https://api.proxy.example.com"
 
 # --- Authio Logging Configuration (NEW) ---
 AUTH_LOG_ENABLED = true
