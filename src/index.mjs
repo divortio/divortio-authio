@@ -9,6 +9,6 @@
  */
 
 export {authenticate} from './auth.mjs';
-export {handleLogin} from './login.mjs';
-export {handleLogout} from './logout.mjs';
+export {handleLogin} from './handlers/login.mjs';
+export {handleLogout} from './handlers/logout.mjs';
 export {createAuthHandler} from './router.mjs';

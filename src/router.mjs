@@ -4,8 +4,8 @@
  */
 
 import {createAuthConfig} from './config.mjs';
-import {Logger} from './logger.mjs';
-import {authenticate} from './auth.mjs';
+import {Logger} from './utils/logger.mjs';
+import {authenticate} from './utils/auth.mjs';
 import {ApiHandler} from './handlers/api.mjs';
 import {UiHandler} from './handlers/ui.mjs';
 
