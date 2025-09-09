@@ -132,10 +132,12 @@ async function myApp(request, env, ctx) {
 }
 
 export default createAuthHandler(myApp);
+```
+
 Selective Route Protection
 For applications with more complex requirements, the modular functions can be utilized to construct custom routing logic.
 
-JavaScript
+```javascript
 
 // Example: /src/worker.mjs
 import { authenticate, handleLogin, handleLogout } from './modules/authio/src/index.mjs';
