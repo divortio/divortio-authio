@@ -1,6 +1,6 @@
 /**
  * @file A high-level utility for handling the user login lifecycle event.
- * @version 1.0.0 (authio)
+ * @version 1.1.0 (authio)
  *
  * @description
  * This module exports a single function, `handleLogin`, that encapsulates the
@@ -9,7 +9,6 @@
  */
 
 import {createAuthConfig} from '../config.mjs';
-import {CredentialStore} from '../utils/creds.mjs';
 import {JWT} from '../utils/jwt.mjs';
 import {Logger} from '../utils/logger.mjs';
 
@@ -26,7 +25,7 @@ import {Logger} from '../utils/logger.mjs';
  * @returns {Promise<Response>} A promise that resolves to a Response object.
  */
 export async function handleLogin(request, env, ctx, options = {}) {
-    const config = options.config || createAuthConfig(env);
+    const config = options.config || await createAuthConfig(env);
     const logger = new Logger({
         enabled: config.logEnabled,
         logLevel: config.logLevel
@@ -40,13 +39,19 @@ export async function handleLogin(request, env, ctx, options = {}) {
     }
 
     try {
-        const userStore = await CredentialStore.get(config.usersModulePath, logger);
+        const {userStore} = config;
         const {username, password, publicClaims, privateClaims} = await request.json();
 
         if (userStore[username] === password) {
             const token = await JWT.create({...config, username, publicClaims, privateClaims});
+
+            let cookieString = `${config.authTokenName}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${config.sessionTimeout}`;
+            if (config.cookieDomain) {
+                cookieString += `; Domain=${config.cookieDomain}`;
+            }
+
             const headers = new Headers({'Content-Type': 'application/json'});
-            headers.set('Set-Cookie', `${config.authTokenName}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${config.sessionTimeout}`);
+            headers.set('Set-Cookie', cookieString);
 
             logger.info('User login successful', {username});
             return new Response(JSON.stringify({success: true}), {status: 200, headers});

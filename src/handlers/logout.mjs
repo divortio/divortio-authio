@@ -1,6 +1,6 @@
 /**
  * @file A high-level utility for handling the user logout lifecycle event.
- * @version 1.0.0 (authio)
+ * @version 1.1.0 (authio)
  *
  * @description
  * This module exports a single function, `handleLogout`, that returns a response
@@ -21,14 +21,19 @@ import {Logger} from '../utils/logger.mjs';
  * @returns {Promise<Response>} A promise that resolves to a Response object.
  */
 export async function handleLogout(request, env, ctx, options = {}) {
-    const config = options.config || createAuthConfig(env);
+    const config = options.config || await createAuthConfig(env);
     const logger = new Logger({
         enabled: config.logEnabled,
         logLevel: config.logLevel
     }).withContext({requestId: request.headers.get('cf-ray')});
 
+    let cookieString = `${config.authTokenName}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`;
+    if (config.cookieDomain) {
+        cookieString += `; Domain=${config.cookieDomain}`;
+    }
+
     const headers = new Headers({'Content-Type': 'application/json'});
-    headers.set('Set-Cookie', `${config.authTokenName}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
+    headers.set('Set-Cookie', cookieString);
 
     logger.info('User logout successful');
     return new Response(JSON.stringify({success: true}), {status: 200, headers});

@@ -1,10 +1,10 @@
 /**
  * @file Handles all authentication API endpoints by delegating to lifecycle utilities.
- * @version 2.0.0 (authio)
+ * @version 2.1.0 (authio)
  */
 
-import {handleLogin} from '../login.mjs';
-import {handleLogout} from '../logout.mjs';
+import {handleLogin} from './login.mjs';
+import {handleLogout} from './logout.mjs';
 
 /**
  * @namespace ApiHandler
@@ -13,14 +13,14 @@ import {handleLogout} from '../logout.mjs';
 export const ApiHandler = {
     /**
      * Checks if a request matches an API route and handles it.
-     * @param {Request} request - The incoming request.
+     * @param {Request} request - The incoming request, pre-processed and enhanced with a .parsedUrl property.
      * @param {object} env - The worker's environment object.
      * @param {ExecutionContext} ctx - The worker's execution context.
      * @param {object} config - The application's auth configuration object.
      * @returns {Promise<Response|null>} A Response if the route is matched, otherwise null.
      */
     async handleRequest(request, env, ctx, config) {
-        const url = new URL(request.url);
+        const url = request.parsedUrl; // Use the pre-parsed URL
 
         // --- Login Endpoint ---
         if (url.pathname === config.loginApiPath) {

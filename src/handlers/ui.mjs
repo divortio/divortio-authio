@@ -1,6 +1,6 @@
 /**
  * @file Handles all authentication-related user interface routing and rendering.
- * @version 2.0.0 (authio)
+ * @version 2.2.0 (authio)
  */
 
 import {fallbackLoginPage} from '../utils/loginFallback.mjs';
@@ -19,14 +19,15 @@ export const UiHandler = {
      * @returns {Promise<Response|null>} A Response if the route is matched, otherwise null.
      */
     async handleRequest(authedRequest, env, config, logger) {
-        const url = new URL(authedRequest.url);
+        // Use the new, pre-parsed URL object from the request.
+        const url = authedRequest.parsedUrl;
         const isLoginPageRoute = url.pathname === config.loginUrlPath;
         const {isAuthed, method} = authedRequest.authio;
 
         // --- Redirect Logic ---
         if (isAuthed && isLoginPageRoute) {
             // User is ALREADY logged in but is visiting the login page. Redirect them.
-            return Response.redirect(new URL(config.authRedirectPath, url).href, 302);
+            return Response.redirect(new URL(config.authRedirectPath, url.origin).href, 302);
         }
 
         // Programmatic requests (e.g., cURL) should not be redirected. They will be handled by the gatekeeper.
@@ -36,7 +37,7 @@ export const UiHandler = {
             const isBrowserRequest = authedRequest.headers.get('Accept')?.includes('text/html');
             if (isBrowserRequest) {
                 // User is NOT logged in and is trying to access a protected page. Redirect them.
-                return Response.redirect(new URL(config.loginUrlPath, url).href, 302);
+                return Response.redirect(new URL(config.loginUrlPath, url.origin).href, 302);
             }
         }
 
@@ -44,11 +45,11 @@ export const UiHandler = {
         if (isLoginPageRoute) {
             try {
                 if (!env.ASSETS) throw new Error("ASSETS binding not found.");
-                const loginPageResponse = await env.ASSETS.fetch(new Request(new URL(config.loginAssetPath, url).href));
+                const loginPageResponse = await env.ASSETS.fetch(new Request(new URL(config.loginAssetPath, url.origin).href));
                 if (!loginPageResponse.ok) throw new Error(`Asset not found: ${loginPageResponse.status}`);
 
                 let html = await loginPageResponse.text();
-                html = html.replace(/"\/api\/auth\/login"/g, `"${config.loginApiPath}"`);
+                html = html.replace('{{LOGIN_API_PATH}}', config.loginApiPath);
                 return new Response(html, {headers: {'Content-Type': 'text/html'}});
             } catch (e) {
                 logger.error('Could not serve custom login.html asset, serving fallback.', {error: e.message});

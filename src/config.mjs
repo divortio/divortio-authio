@@ -1,6 +1,6 @@
 /**
  * @file Manages and strictly validates the configuration for the Authio module.
- * @version 3.0.0 (authio)
+ * @version 3.1.0 (authio)
  *
  * @description
  * This module exports a single async function, `createAuthConfig`, which is responsible for
@@ -24,6 +24,7 @@ import {Logger} from './utils/logger.mjs';
  * @property {string} jwtSecret - The secret key for signing JWTs.
  * @property {number} sessionTimeout - The session duration in seconds.
  * @property {string} authTokenName - The name of the authentication cookie.
+ * @property {string|null} cookieDomain - The domain to set for the session cookie.
  * @property {string} agentHeaderName - The name of the HTTP header for programmatic access.
  * @property {string} jwtIssuer - The "iss" (Issuer) claim for the JWT.
  * @property {string} jwtAudience - The "aud" (Audience) claim for the JWT.
@@ -45,8 +46,8 @@ function requireAndValidate(env, key, validator, message) {
 }
 
 const isPath = (val) => typeof val === 'string' && val.includes('/');
-const isNonEmptyString = (val) => typeof val === 'string' && val.length > 0;
 const isInteger = (val) => !isNaN(parseInt(val, 10)) && Number.isInteger(Number(val));
+const isDomain = (val) => typeof val === 'string' && /^\.?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/.test(val);
 
 /**
  * Creates and returns a structured configuration object for the Authio module.
@@ -64,6 +65,8 @@ export async function createAuthConfig(env, logger) {
     const loginUrlPath = env.LOGIN_URL_PATH || '/login';
     if (!isPath(loginUrlPath)) throw new Error('Configuration Error: LOGIN_URL_PATH must be a valid path (e.g., "/login").');
 
+    const cookieDomain = env.COOKIE_DOMAIN ? requireAndValidate(env, 'COOKIE_DOMAIN', isDomain, 'Must be a valid domain name, optionally preceded by a dot (e.g., ".example.com").') : null;
+
     // --- Preload the UserStore ---
     const userStore = await CredentialStore.get(usersModulePath, logger);
 
@@ -74,6 +77,7 @@ export async function createAuthConfig(env, logger) {
         jwtSecret,
         sessionTimeout,
         loginUrlPath,
+        cookieDomain,
         loginApiPath: env.LOGIN_API_PATH || '/api/auth/login',
         logoutApiPath: env.LOGOUT_API_PATH || '/api/auth/logout',
         loginAssetPath: env.LOGIN_ASSET_PATH || './login.html',

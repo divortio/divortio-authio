@@ -22,6 +22,16 @@ custom_domain = true
 # --- Core Proxy Configuration ---
 ROOT_DOMAIN = "proxy.example.com"
 
+# --- Authio JWT Registered Claims ---
+# BEST PRACTICE: Use a static URL to identify the service that issues tokens.
+JWT_ISSUER = "https://auth.proxy.example.com"
+
+# BEST PRACTICE: Use a static URL to identify the service this token is valid for.
+JWT_AUDIENCE = "https://api.proxy.example.com"
+
+# OPTIONAL: Set this to share the cookie across subdomains (e.g., ".example.com")
+# COOKIE_DOMAIN = ".your-domain.com"
+
 # -------------------------------------------------------------------------------------
 # |                           Authio Module Configuration                             |
 # -------------------------------------------------------------------------------------
