@@ -3,7 +3,7 @@
  * @version 2.0.0 (authio)
  */
 
-import {fallbackLoginPage} from '../loginFallback.mjs';
+import {fallbackLoginPage} from '../utils/loginFallback.mjs';
 
 /**
  * @namespace UiHandler
@@ -15,7 +15,7 @@ export const UiHandler = {
      * @param {Request} authedRequest - The incoming request, pre-processed by the authenticate utility.
      * @param {object} env - The worker's environment, containing the ASSETS binding.
      * @param {object} config - The application's auth configuration object.
-     * @param {import('../logger.mjs').Logger} logger - The logger instance.
+     * @param {import('../utils/logger.mjs').Logger} logger - The logger instance.
      * @returns {Promise<Response|null>} A Response if the route is matched, otherwise null.
      */
     async handleRequest(authedRequest, env, config, logger) {
