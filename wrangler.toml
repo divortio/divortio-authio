@@ -56,11 +56,9 @@ AUTH_LOG_ENABLED = true
 # Log level can be "error", "warn", "info", or "debug" (most verbose).
 AUTH_LOG_LEVEL = "info"
 
-# -------------------------------------------------------------------------------------
-# |                           Browser Profile & Caching                               |
-# -------------------------------------------------------------------------------------
-EMULATION_STRATEGY = "passthrough"
-PROFILE_COOKIE_NAME = "_wkrPrx_brwsrPrfl"
-CACHE_ENABLED = true
-CACHE_TTL = 180
-CACHEABLE_TYPES = '["image/", "javascript", "css", "font/"]'
+# --- Rate Limiter Binding ---
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 } # 10 requests per 60 seconds

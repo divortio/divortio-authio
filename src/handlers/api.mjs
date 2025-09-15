@@ -1,6 +1,6 @@
 /**
  * @file Handles all authentication API endpoints by delegating to lifecycle utilities.
- * @version 2.1.0 (authio)
+ * @version 2.3.0 (authio)
  */
 
 import {handleLogin} from './login.mjs';
@@ -24,6 +24,26 @@ export const ApiHandler = {
 
         // --- Login Endpoint ---
         if (url.pathname === config.loginApiPath) {
+            // --- RATE LIMITING ---
+            const ip = request.headers.get("CF-Connecting-IP") || "unknown-ip";
+
+            // Clone the request to read the body for the username, as it can only be read once.
+            const requestClone = request.clone();
+            const {username} = await requestClone.json();
+
+            // Use a composite key of IP and username for more specific rate limiting.
+            const rateLimitKey = `${ip}:${username}`;
+
+            const {success} = await env.RATE_LIMITER.limit({key: rateLimitKey});
+
+            if (!success) {
+                return new Response(JSON.stringify({error: 'Too many requests'}), {
+                    status: 429,
+                    headers: {'Content-Type': 'application/json'}
+                });
+            }
+            // --- END RATE LIMITING ---
+
             return handleLogin(request, env, ctx, {config});
         }
 

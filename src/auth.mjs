@@ -4,7 +4,7 @@
  */
 
 import {createAuthConfig} from './config.mjs';
-import {JWT} from '/utils/jwt.mjs';
+import {JWT} from './utils/jwt.mjs';
 import {Logger} from './utils/logger.mjs';
 
 /**

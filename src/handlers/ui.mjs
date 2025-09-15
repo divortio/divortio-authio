@@ -49,7 +49,7 @@ export const UiHandler = {
                 if (!loginPageResponse.ok) throw new Error(`Asset not found: ${loginPageResponse.status}`);
 
                 let html = await loginPageResponse.text();
-                html = html.replace('{{LOGIN_API_PATH}}', config.loginApiPath);
+                html = html.replaceAll('{{LOGIN_API_PATH}}', config.loginApiPath);
                 return new Response(html, {headers: {'Content-Type': 'text/html'}});
             } catch (e) {
                 logger.error('Could not serve custom login.html asset, serving fallback.', {error: e.message});

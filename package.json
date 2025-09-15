@@ -6,6 +6,12 @@
   "main": "src/index.mjs",
   "author": "Divortio",
   "license": "MIT",
+  "scripts": {
+    "predev": "node buildCreds.js",
+    "predeploy": "node buildCreds.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
   "devDependencies": {
     "wrangler": "^4.32.00",
     "@cloudflare/workers-types": "^4.20250807.0"
