@@ -23,7 +23,7 @@ custom_domain = true
 ROOT_DOMAIN = "proxy.example.com"
 
 # --- Authio Module Paths ---
-AUTH_USERS_MODULE_PATH = "./src/auth/users.mjs"
+AUTH_USERS_MODULE_PATH = "./src/creds/users.mjs"
 
 # --- Authio UI & Routing Paths ---
 LOGIN_URL_PATH = "/login"
