@@ -3,9 +3,9 @@
  * @version 1.3.0 (authio)
  */
 
-import {createAuthConfig} from '../config.mjs';
-import {JWT} from '../utils/jwt.mjs';
-import {Logger} from '../utils/logger.mjs';
+import {createAuthConfig} from './config.mjs';
+import {JWT} from '/utils/jwt.mjs';
+import {Logger} from './utils/logger.mjs';
 
 /**
  * @typedef {object} AuthioContext
