@@ -1,6 +1,6 @@
 /**
  * @file Handles all authentication API endpoints by delegating to lifecycle utilities.
- * @version 2.3.0 (authio)
+ * @version 2.4.0 (authio)
  */
 
 import {handleLogin} from './login.mjs';
@@ -11,40 +11,47 @@ import {handleLogout} from './logout.mjs';
  * @description A handler for authentication API routes.
  */
 export const ApiHandler = {
-    /**
-     * Checks if a request matches an API route and handles it.
-     * @param {Request} request - The incoming request, pre-processed and enhanced with a .parsedUrl property.
-     * @param {object} env - The worker's environment object.
-     * @param {ExecutionContext} ctx - The worker's execution context.
-     * @param {object} config - The application's auth configuration object.
-     * @returns {Promise<Response|null>} A Response if the route is matched, otherwise null.
-     */
     async handleRequest(request, env, ctx, config) {
-        const url = request.parsedUrl; // Use the pre-parsed URL
+        const url = request.parsedUrl;
 
         // --- Login Endpoint ---
         if (url.pathname === config.loginApiPath) {
-            // --- RATE LIMITING ---
-            const ip = request.headers.get("CF-Connecting-IP") || "unknown-ip";
+            try {
+                // --- RATE LIMITING ---
+                const ip = request.headers.get("CF-Connecting-IP") || "unknown-ip";
 
-            // Clone the request to read the body for the username, as it can only be read once.
-            const requestClone = request.clone();
-            const {username} = await requestClone.json();
+                // Clone the request to read the body, as it can only be read once.
+                const requestClone = request.clone();
+                const {username} = await requestClone.json();
 
-            // Use a composite key of IP and username for more specific rate limiting.
-            const rateLimitKey = `${ip}:${username}`;
+                // A username is required to create a specific rate-limiting key.
+                if (!username) {
+                    return new Response(JSON.stringify({error: 'Username is required'}), {
+                        status: 400,
+                        headers: {'Content-Type': 'application/json'}
+                    });
+                }
 
-            const {success} = await env.RATE_LIMITER.limit({key: rateLimitKey});
+                const rateLimitKey = `${ip}:${username}`;
+                const {success} = await env.RATE_LIMITER.limit({key: rateLimitKey});
 
-            if (!success) {
-                return new Response(JSON.stringify({error: 'Too many requests'}), {
-                    status: 429,
+                if (!success) {
+                    return new Response(JSON.stringify({error: 'Too many requests'}), {
+                        status: 429,
+                        headers: {'Content-Type': 'application/json'}
+                    });
+                }
+                // --- END RATE LIMITING ---
+
+                return handleLogin(request, env, ctx, {config});
+
+            } catch (e) {
+                // This catch block handles errors from requestClone.json() if the body is malformed.
+                return new Response(JSON.stringify({error: 'Invalid request body'}), {
+                    status: 400,
                     headers: {'Content-Type': 'application/json'}
                 });
             }
-            // --- END RATE LIMITING ---
-
-            return handleLogin(request, env, ctx, {config});
         }
 
         // --- Logout Endpoint ---

@@ -1,14 +1,15 @@
 /**
  * @file An example in-memory user store for authentication.
- * @version 1.0.0
- * @note To use this, copy it to your project's `src/auth` directory, rename it to
- * `users.mjs`, and replace the placeholder credentials with your own. For production use,
- * this should be replaced with a secure database or identity provider.
+ * @version 1.1.0
+ * @note To use this, copy the file to your project's root directory, rename it
+ * to `_users.mjs`, and replace the placeholder credentials with your own.
+ * For production use, this should be replaced with a secure database.
  */
 
 /**
  * @namespace UserStore
- * @description A hardcoded list of valid users. The key is the username and the value is the password.
+ * @description A hardcoded list of valid users.
+ * The key is the username and the value is the password.
  */
 export const UserStore = {
     "admin": "replace_with_a_strong_password",

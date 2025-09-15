@@ -1,6 +1,7 @@
 /**
  * @file A composable function for authenticating a request and enriching it with auth context.
- * @version 1.3.0 (authio)
+ * @version 1.4.0 (authio)
+ * @exports authenticate
  */
 
 import {createAuthConfig} from './config.mjs';
@@ -8,24 +9,46 @@ import {JWT} from './utils/jwt.mjs';
 import {Logger} from './utils/logger.mjs';
 
 /**
- * @typedef {object} AuthioContext
- * @property {boolean} isAuthed - True if the request is successfully authenticated.
- * @property {string|null} method - The method of authentication ('jwt', 'header', 'error', or null).
- * @property {string|null} username - The authenticated user's name, if available.
- * @property {object|null} payload - The full JWT payload, if the method was 'jwt'.
- * @property {string|null} error - A description of the error if authentication failed.
- * @property {number} timestamp - The UTC timestamp of when the authentication check was performed.
+ * @typedef {import('./config.mjs').AuthConfig} AuthConfig
  */
 
 /**
- * Inspects and authenticates a request, returning a cloned, enriched request object.
+ * Represents the detailed result of an authentication attempt. This object is
+ * attached to the enriched Request object as `request.authio`.
  *
- * @param {Request} request - The original incoming request.
- * @param {object} env - The worker's environment object.
- * @param {ExecutionContext} ctx - The worker's execution context.
- * @param {object} [options={}] - Optional configuration.
- * @param {object} [options.config] - A pre-constructed auth config object to override env vars.
- * @returns {Promise<Request>} A promise that resolves to a cloned Request object with `isAuthed` and `authio` properties.
+ * @typedef {object} AuthioContext
+ * @property {boolean} isAuthed - Evaluates to `true` if the request is successfully authenticated.
+ * @property {string|null} method - The method of authentication ('jwt', 'header', 'error', or null if no attempt was made).
+ * @property {string|null} username - The name of the authenticated user, if available.
+ * @property {object|null} payload - The full decoded JWT payload if the authentication method was 'jwt'.
+ * @property {string|null} error - A description of the error if an authentication attempt failed.
+ * @property {number} timestamp - A UTC timestamp (from Date.now()) indicating when the authentication check was performed.
+ */
+
+/**
+ * An enriched Cloudflare Worker Request object. It is a clone of the original
+ * request, augmented with the authentication context.
+ *
+ * @typedef {Request & {isAuthed: boolean, authio: AuthioContext}} AuthenticatedRequest
+ */
+
+/**
+ * Optional configuration for the authenticate function.
+ *
+ * @typedef {object} AuthenticateOptions
+ * @property {AuthConfig} [config] - A pre-constructed auth config object. If not provided, one will be created from the environment variables.
+ */
+
+/**
+ * Inspects a Cloudflare Worker request, determines the authentication status based on
+ * a JWT cookie or a programmatic header, and returns a new, enriched request object.
+ * This function is pure; it does not modify the original request.
+ *
+ * @param {Request} request - The original incoming request from the Cloudflare Worker runtime.
+ * @param {object} env - The worker's environment object, containing configuration and bindings.
+ * @param {object} ctx - The worker's execution context.
+ * @param {AuthenticateOptions} [options={}] - Optional configuration to override environment variables.
+ * @returns {Promise<AuthenticatedRequest>} A promise that resolves to a cloned `Request` object augmented with `isAuthed` and `authio` properties.
  */
 export async function authenticate(request, env, ctx, options = {}) {
     const clonedRequest = request.clone();
@@ -56,7 +79,16 @@ export async function authenticate(request, env, ctx, options = {}) {
         if (programmaticAuthHeader) {
             try {
                 const decoded = atob(programmaticAuthHeader);
-                const [username, password] = decoded.split(':');
+
+                // Split on the first colon only to allow colons in the password.
+                const firstColonIndex = decoded.indexOf(':');
+                if (firstColonIndex === -1) {
+                    throw new Error('Header credentials are not in the format "username:password"');
+                }
+
+                const username = decoded.substring(0, firstColonIndex);
+                const password = decoded.substring(firstColonIndex + 1);
+
                 if (username && password && userStore[username] === password) {
                     authResult.isAuthed = true;
                     authResult.method = 'header';
