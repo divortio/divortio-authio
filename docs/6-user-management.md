@@ -29,11 +29,10 @@ the following schema:
     "username": "admin",
     "password": "a_very_strong_password_or_token",
     "routes": [
-        "*[.example.com/admin/](https://.example.com/admin/)*",
-        "[api.example.com/v1/users/](https://api.example.com/v1/users/)*"
+        "*.example.com/admin/*",
+        "api.example.com/v1/users/*"
     ]
 }
-
 ```
 
 - `username`: (string, required) - The user's unique identifier.
