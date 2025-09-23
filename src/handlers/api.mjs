@@ -5,6 +5,7 @@
 
 import {handleLogin} from './login.mjs';
 import {handleLogout} from './logout.mjs';
+import {sendAuthAnalytics} from '../wae/index.mjs';
 
 /**
  * @namespace ApiHandler
@@ -36,6 +37,17 @@ export const ApiHandler = {
                 const {success} = await env.RATE_LIMITER.limit({key: rateLimitKey});
 
                 if (!success) {
+                    // --- ANALYTICS ---
+                    // Send a specific event for a rate-limited request.
+                    const authContext = {
+                        isAuthed: false,
+                        method: 'error',
+                        username: username,
+                        error: 'Too many requests',
+                    };
+                    sendAuthAnalytics(request, env, authContext, {isRateLimited: true});
+                    // --- END ANALYTICS ---
+
                     return new Response(JSON.stringify({error: 'Too many requests'}), {
                         status: 429,
                         headers: {'Content-Type': 'application/json'}

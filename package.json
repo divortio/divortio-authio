@@ -7,8 +7,6 @@
   "author": "Divortio",
   "license": "MIT",
   "scripts": {
-    "predev": "node buildCreds.js",
-    "predeploy": "node buildCreds.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },

@@ -1,11 +1,6 @@
 /**
  * @file A high-level utility for handling the user login lifecycle event.
- * @version 1.2.0 (authio)
- *
- * @description
- * This module exports a single function, `handleLogin`, that encapsulates the
- * entire logic for processing user credentials from a request and returning a
- * response that establishes a session by setting a JWT cookie.
+ * @version 3.0.0 (authio)
  */
 
 import {createAuthConfig} from '../config.mjs';
@@ -13,19 +8,10 @@ import {JWT} from '../utils/jwt.mjs';
 import {Logger} from '../utils/logger.mjs';
 
 /**
- * Processes a login request, validates credentials, and returns a Response.
+ * Processes a login request, validates credentials against the KV store, and returns a Response.
  * On success, the Response will contain a Set-Cookie header with the session JWT.
- * On failure, it will return an appropriate HTTP error Response.
- *
- * @param {Request} request - The incoming request, expected to be a POST with a JSON body.
- * @param {object} env - The worker's environment object.
- * @param {ExecutionContext} ctx - The worker's execution context.
- * @param {object} [options={}] - Optional configuration.
- * @param {object} [options.config] - A pre-constructed auth config object to override env vars.
- * @returns {Promise<Response>} A promise that resolves to a Response object.
  */
 export async function handleLogin(request, env, ctx, options = {}) {
-    // Use the provided config or create one from the environment as a fallback.
     const logger = new Logger({
         enabled: String(env.AUTH_LOG_ENABLED).toLowerCase() === 'true',
         logLevel: env.AUTH_LOG_LEVEL || 'warn'
@@ -40,11 +26,20 @@ export async function handleLogin(request, env, ctx, options = {}) {
     }
 
     try {
-        const {userStore} = config;
+        const {userStore} = config; // Now a CredentialStore instance
         const {username, password, publicClaims, privateClaims} = await request.json();
 
-        if (userStore[username] === password) {
-            const token = await JWT.create({...config, username, publicClaims, privateClaims});
+        // Fetch the user from the CredentialStore (which uses KV).
+        const user = await userStore.getUser(username);
+
+        if (user && user.password === password) {
+            const token = await JWT.create({
+                ...config,
+                username: user.username,
+                routes: user.routes,
+                publicClaims,
+                privateClaims
+            });
 
             let cookieString = `${config.authTokenName}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${config.sessionTimeout}`;
             if (config.cookieDomain) {

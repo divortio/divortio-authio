@@ -1,55 +1,88 @@
 /**
- * @file A dedicated module for loading, validating, and providing access to credentials.
- * @version 1.0.0 (authio)
- *
- * @description
- * This module is the single source of truth for all user and service credentials.
- * It uses dynamic `import()` to load the user store from the path specified
- * in the configuration. It performs schema validation to ensure the data is in the
- * correct format and caches the store in memory for high performance.
+ * @file A dedicated class for fetching and caching user credentials from Cloudflare KV.
+ * @version 3.0.0 (authio)
  */
 
 /**
- * @typedef {object<string, string>} UserStore
- * @description The schema for the user credential store. A key-value object where the
- * key is the username and the value is the password or token.
- * @example
- * export const UserStore = {
- * "admin": "a_very_strong_password",
- * "service_account_1": "a_long_and_secret_api_token"
- * };
+ * @typedef {object} User
+ * @property {string} username
+ * @property {string} password
+ * @property {string[]} routes
  */
-
-// Module-level cache for the loaded credential store.
-let userStore = null;
 
 /**
- * @namespace CredentialStore
- * @description Manages the lifecycle of credential data.
+ * @typedef {object} CachedUser
+ * @property {User} user - The user object from KV.
+ * @property {number} expires - The timestamp when the cache entry expires.
  */
-export const CredentialStore = {
+
+/**
+ * @class CredentialStore
+ * @description Manages fetching and caching of user data from a KV namespace.
+ * Implements a lazy-loading, cache-first strategy to ensure high performance.
+ */
+export class CredentialStore {
     /**
-     * Loads, validates, and returns the UserStore.
-     * This function is designed to run once and cache the result for subsequent calls.
-     *
-     * @param {string} path - The path to the UserStore module.
+     * @param {KVNamespace} kv - The KV namespace binding.
      * @param {import('./logger.mjs').Logger} logger - The logger instance.
-     * @returns {Promise<UserStore>} A promise that resolves to the validated user store object.
-     * @throws {Error} If the module cannot be loaded or if its schema is invalid.
+     * @param {number} cacheTtlMs - The TTL for the in-memory user cache in milliseconds.
      */
-    async get(path, logger) {
-        if (userStore) return userStore;
-        try {
-            const module = await import(path);
-            if (typeof module.UserStore !== 'object' || module.UserStore === null) {
-                throw new Error("UserStore export is not a valid object.");
-            }
-            logger.info('UserStore loaded and validated successfully.');
-            userStore = module.UserStore;
-            return userStore;
-        } catch (e) {
-            logger.error('Failed to import UserStore.', {path, error: e.message});
-            throw new Error("Fatal: Could not load UserStore. Please check AUTH_USERS_MODULE_PATH in wrangler.toml.");
+    constructor(kv, logger, cacheTtlMs) {
+        if (!kv) {
+            // This is a fatal error; the service cannot run without the user store.
+            const errorMsg = "FATAL: AUTH_USERS_KV binding is missing. Please check wrangler.toml.";
+            logger.error(errorMsg);
+            throw new Error(errorMsg);
         }
-    },
-};
+        this.kv = kv;
+        this.logger = logger;
+        this.cacheTtlMs = cacheTtlMs;
+        /** @type {Map<string, CachedUser>} */
+        this.userCache = new Map();
+    }
+
+    /**
+     * Retrieves a user, prioritizing the in-memory cache before fetching from KV.
+     * @param {string} username - The username to fetch.
+     * @returns {Promise<User|null>} The user object or null if not found.
+     */
+    async getUser(username) {
+        if (!username) return null;
+
+        // 1. Check in-memory cache first
+        const cachedEntry = this.userCache.get(username);
+        if (cachedEntry && Date.now() < cachedEntry.expires) {
+            this.logger.info(`User cache hit for: ${username}`);
+            return cachedEntry.user;
+        }
+
+        // 2. Cache miss or stale, fetch from KV
+        this.logger.info(`User cache miss for: ${username}. Fetching from KV.`);
+        try {
+            const userJson = await this.kv.get(`user:${username}`);
+            if (!userJson) {
+                this.logger.warn(`User not found in KV: ${username}`);
+                // Cache the "not found" result to prevent repeated lookups for invalid users
+                this.userCache.set(username, {
+                    user: null,
+                    expires: Date.now() + this.cacheTtlMs,
+                });
+                return null;
+            }
+
+            const user = JSON.parse(userJson);
+
+            // 3. Update in-memory cache with the found user
+            this.userCache.set(username, {
+                user,
+                expires: Date.now() + this.cacheTtlMs,
+            });
+
+            return user;
+        } catch (e) {
+            this.logger.error(`Failed to fetch or parse user from KV for: ${username}`, {error: e.message});
+            // Do not cache failures to allow for recovery
+            return null;
+        }
+    }
+}

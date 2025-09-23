@@ -1,6 +1,6 @@
 # =====================================================================================
 # Wrangler Configuration for Divortio Worker Proxy
-# Version: 11.0.0
+# Version: 12.0.0
 # =====================================================================================
 name = "divortio-worker-proxy"
 main = "src/worker.mjs"
@@ -11,19 +11,15 @@ compatibility_date = "2025-09-08"
 directory = "./public"
 binding = "ASSETS"
 
-[[routes]]
-pattern = "proxy.example.com"
-custom_domain = true
-[[routes]]
-pattern = "*.proxy.example.com"
-custom_domain = true
+# --- NEW: KV Namespace Binding for User Store ---
+# This binding connects the worker to the KV namespace managed by the `authello` project.
+[[kv_namespaces]]
+binding = "AUTH_USERS_KV"
+id = "your_kv_namespace_id_here" # Replace with the ID from your Cloudflare dashboard
 
 [vars]
 # --- Core Proxy Configuration ---
 ROOT_DOMAIN = "proxy.example.com"
-
-# --- Authio Module Paths ---
-AUTH_USERS_MODULE_PATH = "./src/creds/users.mjs"
 
 # --- Authio UI & Routing Paths ---
 LOGIN_URL_PATH = "/login"
@@ -38,27 +34,27 @@ LOGOUT_API_PATH = "/api/auth/logout"
 AUTH_COOKIE_NAME = "__authio_jwt"
 AGENT_HEADER_NAME = "X-Authio-Token"
 
-# OPTIONAL: Set this to share the cookie across subdomains (e.g., ".example.com")
-# COOKIE_DOMAIN = ".your-domain.com"
-
 # --- Authio Security ---
 JWT_SECRET = "your-super-secret-key-that-is-at-least-32-characters-long"
 SESSION_TIMEOUT = 3600 # 1 hour
 
 # --- Authio JWT Registered Claims ---
-# BEST PRACTICE: Use a static URL to identify the service that issues tokens.
 JWT_ISSUER = "https://auth.proxy.example.com"
-# BEST PRACTICE: Use a static URL to identify the service this token is valid for.
 JWT_AUDIENCE = "https://api.proxy.example.com"
 
-# --- Authio Logging Configuration (NEW) ---
+# --- Authio Logging Configuration ---
 AUTH_LOG_ENABLED = true
-# Log level can be "error", "warn", "info", or "debug" (most verbose).
 AUTH_LOG_LEVEL = "info"
+
+# --- Authio Caching ---
+CACHE_TTL_MS = 60000
+MAX_CACHE_SIZE = 50000
+CACHE_EVICTION_BATCH_SIZE = 100
+USER_CACHE_TTL = 60 # In-memory cache TTL for a user object from KV, in seconds.
 
 # --- Rate Limiter Binding ---
 [[unsafe.bindings]]
 name = "RATE_LIMITER"
 type = "ratelimit"
 namespace_id = "1001"
-simple = { limit = 10, period = 60 } # 10 requests per 60 seconds
+simple = { limit = 10, period = 60 }
