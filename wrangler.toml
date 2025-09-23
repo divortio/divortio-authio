@@ -1,26 +1,22 @@
 # =====================================================================================
-# Wrangler Configuration for Divortio Worker Proxy
-# Version: 12.0.0
+# Wrangler Configuration for Authio RPC Worker
+# Version: 13.0.0
 # =====================================================================================
-name = "divortio-worker-proxy"
-main = "src/worker.mjs"
-compatibility_date = "2025-09-08"
-# account_id = "your_account_id_here"
+name = "authio" # Renamed for clarity as a standalone service
+main = "src/index.mjs" # Changed to the new RPC entry point
+compatibility_date = "2025-09-08" # This is later than the required 2024-04-03 for RPC
 
 [assets]
 directory = "./public"
 binding = "ASSETS"
 
-# --- NEW: KV Namespace Binding for User Store ---
+# --- KV Namespace Binding for User Store ---
 # This binding connects the worker to the KV namespace managed by the `authello` project.
 [[kv_namespaces]]
 binding = "AUTH_USERS_KV"
 id = "your_kv_namespace_id_here" # Replace with the ID from your Cloudflare dashboard
 
 [vars]
-# --- Core Proxy Configuration ---
-ROOT_DOMAIN = "proxy.example.com"
-
 # --- Authio UI & Routing Paths ---
 LOGIN_URL_PATH = "/login"
 LOGIN_ASSET_PATH = "./login.html"
@@ -58,3 +54,16 @@ name = "RATE_LIMITER"
 type = "ratelimit"
 namespace_id = "1001"
 simple = { limit = 10, period = 60 }
+
+# --- Authio Analytics Engine Bindings ---
+[[analytics_engine_datasets]]
+binding = "AUTH_EVENTS"
+dataset = "auth_events"
+
+[[analytics_engine_datasets]]
+binding = "AUTH_SUCCESS"
+dataset = "auth_success"
+
+[[analytics_engine_datasets]]
+binding = "AUTH_FAILURES"
+dataset = "auth_failures"
