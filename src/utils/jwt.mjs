@@ -1,6 +1,6 @@
 /**
  * @file The internal, core JWT logic for the authentication module.
- * @version 1.0.0
+ * @version 2.1.0
  * @description This file contains the "engine" of the JWT system, including all
  * cryptographic functions for creating and validating tokens. It is designed to be
  * entirely self-contained and have no knowledge of the parent application.
@@ -9,12 +9,13 @@
 /**
  * @typedef {object} JwtClaims
  * @property {string} [iss] - Issuer
- * @property {string} [sub] - Subject
+ * @property {string} [sub] - Subject (username)
  * @property {string} [aud] - Audience
  * @property {number} [exp] - Expiration Time
  * @property {number} [nbf] - Not Before
  * @property {number} [iat] - Issued At
  * @property {string} [jti] - JWT ID
+ * @property {string[]} [routes] - Array of authorized route patterns.
  */
 
 /**
@@ -22,19 +23,8 @@
  * @description A self-contained module for creating and validating JSON Web Tokens.
  */
 export const JWT = {
-    /**
-     * Caches the HMAC CryptoKey for performance.
-     * @private
-     * @type {CryptoKey|null}
-     */
     _cryptoKey: null,
 
-    /**
-     * Gets or creates the HMAC CryptoKey from the configured secret.
-     * @private
-     * @param {string} jwtSecret - The secret key for signing JWTs.
-     * @returns {Promise<CryptoKey>} A promise that resolves to a CryptoKey object.
-     */
     async getCryptoKey(jwtSecret) {
         if (!jwtSecret || jwtSecret === 'default-secret-please-change') {
             throw new Error("A strong, non-default JWT_SECRET must be provided for authentication.");
@@ -50,12 +40,16 @@ export const JWT = {
         return this._cryptoKey;
     },
 
-    /**
-     * Creates a new, spec-compliant JSON Web Token (JWT).
-     * @param {object} params - The parameters for creating the JWT.
-     * @returns {Promise<string>} A promise that resolves to the signed JWT string.
-     */
-    async create({username, jwtSecret, sessionTimeout, issuer, audience, publicClaims = {}, privateClaims = {}}) {
+    async create({
+                     username,
+                     routes = [],
+                     jwtSecret,
+                     sessionTimeout,
+                     issuer,
+                     audience,
+                     publicClaims = {},
+                     privateClaims = {}
+                 }) {
         const key = await this.getCryptoKey(jwtSecret);
         const now = Math.floor(Date.now() / 1000);
 
@@ -63,6 +57,7 @@ export const JWT = {
             iss: issuer,
             aud: audience,
             sub: username,
+            routes: routes, // CORRECTLY ADDED: Embed the routes into the JWT payload
             jti: crypto.randomUUID(),
             iat: now,
             nbf: now,
@@ -79,11 +74,6 @@ export const JWT = {
         return `${encodedHeader}.${encodedPayload}.${this.base64UrlEncode(signature)}`;
     },
 
-    /**
-     * Validates a JWT from a request.
-     * @param {object} params - The parameters for validating the JWT.
-     * @returns {Promise<JwtClaims|null>} The token's payload if valid, otherwise null.
-     */
     async validate({request, jwtSecret, authTokenName, issuer, audience}) {
         const cookieHeader = request.headers.get('Cookie') || '';
         const cookies = Object.fromEntries(cookieHeader.split(';').map(c => c.trim().split('=')));
@@ -107,6 +97,8 @@ export const JWT = {
             if (payload.nbf > Math.floor(Date.now() / 1000)) return null;
             if (payload.iss !== issuer) return null;
             if (payload.aud !== audience) return null;
+            // CORRECTLY ADDED: Validate that the routes claim exists and is an array
+            if (!Array.isArray(payload.routes)) return null;
 
             return payload;
         } catch (e) {
@@ -114,13 +106,11 @@ export const JWT = {
         }
     },
 
-    /** Helper to Base64URL encode data. @private */
     base64UrlEncode(data) {
         const str = typeof data === 'string' ? data : String.fromCharCode(...new Uint8Array(data));
         return btoa(str).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
     },
 
-    /** Helper to decode Base64URL strings. @private */
     base64UrlDecode(str) {
         const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
         const binaryStr = atob(base64);

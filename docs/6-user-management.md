@@ -1,5 +1,3 @@
----
-
 # User Management with AuthEllo
 
 A core architectural principle of Authio is the decoupling of user management from the core authentication and
@@ -33,16 +31,17 @@ the following schema:
 
 ```json
 {
-"username": "admin",
-"password": "a_very_strong_password_or_token",
-    "routes":[
-    "*[.example.com/admin/](https://.example.com/admin/)*",
-    "[api.example.com/v1/users/](https://api.example.com/v1/users/)*"
+    "username": "admin",
+    "password": "a_very_strong_password_or_token",
+    "routes": [
+        "*[.example.com/admin/](https://.example.com/admin/)*",
+        "[api.example.com/v1/users/](https://api.example.com/v1/users/)*"
     ]
 }
 ```
 
-- `username`: (string, required) - The user's unique identifier.
-- `password`: (string, required) - The user's password or API token.
-- `routes`: (array of strings, required) - An array of Cloudflare-style route patterns. An empty array (`[]`) means the
-  user has no permissions.
+ - username: (string, required) - The user's unique identifier.
+
+ - password: (string, required) - The user's password or API token.
+
+ - routes: (array of strings, required) - An array of Cloudflare-style route patterns. An empty array ([]
