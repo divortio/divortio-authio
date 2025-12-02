@@ -12,7 +12,7 @@
 /**
  * Defines the numerical hierarchy of log levels for filtering.
  * @private
- * @const {object<string, number>}
+ * @const {{string: number}}
  */
 const LOG_LEVELS = {
     error: 0,
